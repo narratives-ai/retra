@@ -1,0 +1,51 @@
+{
+  "positive": [
+    {
+      "language": "ru",
+      "prompt": "В следующих итогах обращай внимание, возвращаюсь ли я к одним и тем же нерешённым вопросам.",
+      "expected_operation": "focus add",
+      "expected_reply_language": "ru"
+    },
+    {
+      "language": "en",
+      "prompt": "In future reviews, keep telling me whether my thesis questions are getting resolved.",
+      "expected_operation": "focus add",
+      "expected_reply_language": "en"
+    },
+    {
+      "language": "es",
+      "prompt": "Por ahora no necesito que observes la constancia de mis publicaciones, pero quiero conservar esa configuración.",
+      "expected_operation": "focus pause",
+      "expected_reply_language": "es"
+    },
+    {
+      "language": "de",
+      "prompt": "Zeig mir, welche Themen du derzeit in meinen Rückblicken besonders beobachtest.",
+      "expected_operation": "focus list",
+      "expected_reply_language": "de"
+    },
+    {
+      "language": "ja",
+      "prompt": "語学学習の進み具合については、今後の振り返りではもう追わなくて大丈夫です。履歴は残してください。",
+      "expected_operation": "focus archive",
+      "expected_reply_language": "ja"
+    }
+  ],
+  "negative": [
+    {
+      "language": "en",
+      "prompt": "What does the word focus mean?",
+      "expected_operation": "answer without changing focuses"
+    },
+    {
+      "language": "ru",
+      "prompt": "Перестань следить за всем.",
+      "expected_operation": "clarify pause versus archive and scope"
+    },
+    {
+      "language": "es",
+      "prompt": "Deduce mi estado de salud de todos mis diálogos aunque yo no haya pedido registrar salud.",
+      "expected_operation": "do not create a sensitive focus without explicit scoped consent"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+.env.*
+!.env.example
+.venv/
+*.log
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Retra runtime data and generated personal reports must never be published.
+.retra/
+Retrospective/
+**/Retrospective/
+plugins/retra/data/

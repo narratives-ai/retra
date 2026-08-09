@@ -1,0 +1,4 @@
+interface:
+  display_name: "Retra"
+  short_description: "Review activity and track what matters"
+  default_prompt: "Use $work-retrospective to create my retrospective for today."

@@ -68,9 +68,10 @@ boundary. Do not require the user to know or type the internal CLI commands.
 6. If the context contains no substantive evidence, explain that there is not
    enough recorded activity and do not fabricate a report. For weekly or
    monthly reports, preserve any reported coverage gaps.
-7. Read [references/report-format.md](references/report-format.md), then write
-   the report to the exact path returned by `report-path`. Create parent
-   directories when needed.
+7. Read [references/report-format.md](references/report-format.md). Start the
+   report with a localized `Retra — <covered date or range>` title and the
+   exact inclusive ISO period from the source bundle, then write it to the
+   exact path returned by `report-path`. Create parent directories when needed.
 8. Run `<bootstrap> refresh-index` after saving the report.
 9. Return a concise summary and a clickable link to the generated local file.
 

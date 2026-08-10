@@ -1,9 +1,41 @@
 # Report formats
 
+## Title and covered period
+
+Every report must begin with two lines:
+
+1. An H1 title in the report's language: `Retra — <human-readable covered date
+   or range>`.
+2. An italic metadata line stating the exact inclusive period with ISO dates.
+   Translate the `Date` or `Period` label into the report's language.
+
+Examples:
+
+```markdown
+# Retra — 10 августа 2026
+_Дата: 2026-08-10_
+
+# Retra — 3–9 августа 2026
+_Период: 2026-08-03 — 2026-08-09_
+
+# Retra — август 2026
+_Период: 2026-08-01 — 2026-08-31_
+
+# Retra — Aug 31–Sep 6, 2026
+_Period: 2026-08-31 — 2026-09-06_
+```
+
+Use a compact localized range when both endpoints share a month or year. When
+the range crosses a month or year boundary, include enough information on both
+endpoints to remove ambiguity. Never use only an ISO week number such as
+`2026-W32` as the visible title. Keep the existing ISO-based filenames because
+they remain stable for sorting and automation.
+
 ## Daily
 
 ```markdown
-# Daily Retrospective — YYYY-MM-DD
+# Retra — <localized full date>
+_<localized Date label>: YYYY-MM-DD_
 
 ## Outcomes
 - Completed result with evidence. (`session:...`)
@@ -37,7 +69,8 @@ completed outcome is evidenced, state that clearly.
 ## Weekly
 
 ```markdown
-# Weekly Retrospective — YYYY-Www
+# Retra — <localized inclusive date range>
+_<localized Period label>: YYYY-MM-DD — YYYY-MM-DD_
 
 ## Week in one paragraph
 A concise synthesis of progress and direction.
@@ -68,9 +101,11 @@ A concise synthesis of progress and direction.
 
 ## Monthly
 
-Use the weekly structure, replacing week-specific language with monthly trends.
-Emphasize direction changes, repeated decisions, recurring blockers, and work
-carried into the next month.
+Use `# Retra — <localized month and year>` followed by the exact inclusive
+first and last dates of the calendar month. Then use the weekly structure,
+replacing week-specific language with monthly trends. Emphasize direction
+changes, repeated decisions, recurring blockers, and work carried into the
+next month.
 
 ## Style
 

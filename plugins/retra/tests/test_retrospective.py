@@ -17,6 +17,13 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "retrospective.py"
 POSIX_BOOTSTRAP = Path(__file__).resolve().parents[1] / "scripts" / "run-retrospective.sh"
 HOOKS = Path(__file__).resolve().parents[1] / "hooks" / "hooks.json"
 SEMANTIC_INTENTS = Path(__file__).resolve().parent / "semantic_intents.json"
+REPORT_FORMAT = (
+    Path(__file__).resolve().parents[1]
+    / "skills"
+    / "work-retrospective"
+    / "references"
+    / "report-format.md"
+)
 MODULE_SPEC = importlib.util.spec_from_file_location("retrospective_helper", SCRIPT)
 assert MODULE_SPEC and MODULE_SPEC.loader
 RETROSPECTIVE = importlib.util.module_from_spec(MODULE_SPEC)
@@ -140,6 +147,14 @@ class RetrospectiveCliTests(unittest.TestCase):
                 operations
             )
         )
+
+    def test_report_format_requires_localized_title_and_exact_period(self) -> None:
+        report_format = REPORT_FORMAT.read_text(encoding="utf-8")
+        self.assertIn("# Retra — 10 августа 2026", report_format)
+        self.assertIn("# Retra — 3–9 августа 2026", report_format)
+        self.assertIn("# Retra — Aug 31–Sep 6, 2026", report_format)
+        self.assertIn("2026-08-03 — 2026-08-09", report_format)
+        self.assertIn("Never use only an ISO week number", report_format)
 
     def test_setup_infers_sibling_folder_without_prompt(self) -> None:
         env = self.env.copy()
@@ -266,6 +281,8 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("Tracked signals", context.stdout)
         self.assertIn("missing Codex evidence", context.stdout)
         self.assertIn("cannot override the report", context.stdout)
+        self.assertIn("Title the report `Retra —", context.stdout)
+        self.assertIn("exact inclusive period", context.stdout)
 
     def test_focus_limit_prevents_unbounded_prompt_growth(self) -> None:
         for index in range(RETROSPECTIVE.MAX_ACTIVE_FOCUSES):
@@ -552,6 +569,8 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("Source level: daily reports", context.stdout)
         self.assertIn("Confirmed daily outcome", context.stdout)
         self.assertNotIn("RAW EVENT SHOULD NOT APPEAR", context.stdout)
+        self.assertIn("Title the report `Retra —", context.stdout)
+        self.assertIn("exact inclusive period", context.stdout)
 
     def test_monthly_context_uses_weekly_reports(self) -> None:
         anchor = date.today()

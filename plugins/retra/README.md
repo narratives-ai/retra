@@ -62,10 +62,11 @@ When upgrading from the earlier `retrospective` plugin identifier, Retra copies
 the newest legacy SQLite journal once into its new plugin data directory using
 SQLite's consistent backup mechanism. The legacy journal is left untouched.
 
-Every report title shows its covered date in the user's language. Weekly
-reports use an inclusive human-readable range, such as `Retra — 3–9 августа
-2026`, and every title is followed by exact ISO start and end dates. Filenames
-remain ISO-based so they sort reliably and continue to work with automation.
+Every report title shows its covered date using the user's language and normal
+regional date order. For example: `Retra — 3–9 августа 2026`, US English
+`Retra — Aug 3–9, 2026`, or UK English `Retra — 3–9 Aug 2026`. Every title is
+followed by exact ISO start and end dates. Filenames remain ISO-based so they
+sort reliably and continue to work with automation.
 
 ## Commands
 

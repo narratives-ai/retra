@@ -153,7 +153,10 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("# Retra — 10 августа 2026", report_format)
         self.assertIn("# Retra — 3–9 августа 2026", report_format)
         self.assertIn("# Retra — Aug 31–Sep 6, 2026", report_format)
+        self.assertIn("# Retra — 31 Aug–6 Sep 2026", report_format)
+        self.assertIn("# Retra — 2026年8月31日〜9月6日", report_format)
         self.assertIn("2026-08-03 — 2026-08-09", report_format)
+        self.assertIn("default consistently to US English", report_format)
         self.assertIn("Never use only an ISO week number", report_format)
 
     def test_setup_infers_sibling_folder_without_prompt(self) -> None:
@@ -281,7 +284,7 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("Tracked signals", context.stdout)
         self.assertIn("missing Codex evidence", context.stdout)
         self.assertIn("cannot override the report", context.stdout)
-        self.assertIn("Title the report `Retra —", context.stdout)
+        self.assertIn("language and regional date order", context.stdout)
         self.assertIn("exact inclusive period", context.stdout)
 
     def test_focus_limit_prevents_unbounded_prompt_growth(self) -> None:
@@ -569,7 +572,7 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("Source level: daily reports", context.stdout)
         self.assertIn("Confirmed daily outcome", context.stdout)
         self.assertNotIn("RAW EVENT SHOULD NOT APPEAR", context.stdout)
-        self.assertIn("Title the report `Retra —", context.stdout)
+        self.assertIn("language and regional date order", context.stdout)
         self.assertIn("exact inclusive period", context.stdout)
 
     def test_monthly_context_uses_weekly_reports(self) -> None:

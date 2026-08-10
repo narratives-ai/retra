@@ -4,8 +4,8 @@
 
 Every report must begin with two lines:
 
-1. An H1 title in the report's language: `Retra — <human-readable covered date
-   or range>`.
+1. An H1 title in the report's language and normal regional date order:
+   `Retra — <human-readable covered date or range>`.
 2. An italic metadata line stating the exact inclusive period with ISO dates.
    Translate the `Date` or `Period` label into the report's language.
 
@@ -23,13 +23,29 @@ _Период: 2026-08-01 — 2026-08-31_
 
 # Retra — Aug 31–Sep 6, 2026
 _Period: 2026-08-31 — 2026-09-06_
+
+# Retra — 31 Aug–6 Sep 2026
+_Period: 2026-08-31 — 2026-09-06_
+
+# Retra — 2026年8月31日〜9月6日
+_期間: 2026-08-31 — 2026-09-06_
 ```
+
+Do not translate a fixed month-day template. Follow the user's language and
+regional convention: Russian and most continental European formats put the day
+before the month; US English puts the month first; UK English puts the day
+first; East Asian formats commonly put the year and month first. Infer a known
+regional preference from the user's language or request. When English is used
+without a regional signal, default consistently to US English (`Aug 3–9,
+2026`).
 
 Use a compact localized range when both endpoints share a month or year. When
 the range crosses a month or year boundary, include enough information on both
 endpoints to remove ambiguity. Never use only an ISO week number such as
 `2026-W32` as the visible title. Keep the existing ISO-based filenames because
-they remain stable for sorting and automation.
+they remain stable for sorting and automation. The exact ISO metadata line is
+required even when the localized title could otherwise be interpreted in more
+than one way.
 
 ## Daily
 

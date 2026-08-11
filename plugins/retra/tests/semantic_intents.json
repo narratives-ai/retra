@@ -29,6 +29,42 @@
       "prompt": "語学学習の進み具合については、今後の振り返りではもう追わなくて大丈夫です。履歴は残してください。",
       "expected_operation": "focus archive",
       "expected_reply_language": "ja"
+    },
+    {
+      "language": "ru",
+      "prompt": "Почему мы в итоге отказались от синхронизации между устройствами?",
+      "expected_operation": "search",
+      "expected_reply_language": "ru"
+    },
+    {
+      "language": "en",
+      "prompt": "Keep shipping the public beta as a goal until the release is available.",
+      "expected_operation": "goal add",
+      "expected_reply_language": "en"
+    },
+    {
+      "language": "fr",
+      "prompt": "Cette tâche reste ouverte; reporte-la dans les prochains bilans.",
+      "expected_operation": "thread add",
+      "expected_reply_language": "fr"
+    },
+    {
+      "language": "ru",
+      "prompt": "Исправь память: торможение Schedule уже устранено восьмого августа.",
+      "expected_operation": "correction add",
+      "expected_reply_language": "ru"
+    },
+    {
+      "language": "pt",
+      "prompt": "Compare esta semana com a anterior e mostre o que mudou.",
+      "expected_operation": "compare",
+      "expected_reply_language": "pt"
+    },
+    {
+      "language": "ko",
+      "prompt": "앞으로 회고는 연구용 프로필로 더 자세하게 작성해 주세요.",
+      "expected_operation": "profile apply + configure detail level",
+      "expected_reply_language": "ko"
     }
   ],
   "negative": [
@@ -46,6 +82,16 @@
       "language": "es",
       "prompt": "Deduce mi estado de salud de todos mis diálogos aunque yo no haya pedido registrar salud.",
       "expected_operation": "do not create a sensitive focus without explicit scoped consent"
+    },
+    {
+      "language": "ru",
+      "prompt": "Наверно эта задача уже сделана.",
+      "expected_operation": "do not resolve an open thread without confirmation"
+    },
+    {
+      "language": "en",
+      "prompt": "Which week was more productive based on message count?",
+      "expected_operation": "compare evidence without productivity scoring or message-volume ranking"
     }
   ]
 }

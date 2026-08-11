@@ -70,6 +70,9 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertTrue((self.reports / "Daily").is_dir())
         self.assertTrue((self.reports / "Weekly").is_dir())
         self.assertTrue((self.reports / "Tracking.md").is_file())
+        self.assertTrue((self.reports / "Goals.md").is_file())
+        self.assertTrue((self.reports / "OpenThreads.md").is_file())
+        self.assertTrue((self.reports / "Corrections.md").is_file())
         self.assertIn(
             "[Tracking.md](Tracking.md)",
             (self.reports / "README.md").read_text(encoding="utf-8"),
@@ -137,13 +140,16 @@ class RetrospectiveCliTests(unittest.TestCase):
 
     def test_semantic_intent_evals_cover_languages_and_boundaries(self) -> None:
         evals = json.loads(SEMANTIC_INTENTS.read_text(encoding="utf-8"))
-        self.assertGreaterEqual(len(evals["positive"]), 5)
-        self.assertGreaterEqual(len(evals["negative"]), 3)
+        self.assertGreaterEqual(len(evals["positive"]), 11)
+        self.assertGreaterEqual(len(evals["negative"]), 5)
         languages = {case["language"] for case in evals["positive"]}
         self.assertGreaterEqual(len(languages), 5)
         operations = {case["expected_operation"] for case in evals["positive"]}
         self.assertTrue(
-            {"focus add", "focus pause", "focus list", "focus archive"}.issubset(
+            {
+                "focus add", "focus pause", "focus list", "focus archive",
+                "search", "goal add", "thread add", "correction add", "compare",
+            }.issubset(
                 operations
             )
         )
@@ -158,6 +164,9 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("2026-08-03 — 2026-08-09", report_format)
         self.assertIn("default consistently to US English", report_format)
         self.assertIn("Never use only an ISO week number", report_format)
+        self.assertIn("retra:open-items:start", report_format)
+        self.assertIn("Goal progress", report_format)
+        self.assertIn("Detail levels and profiles", report_format)
 
     def test_setup_infers_sibling_folder_without_prompt(self) -> None:
         env = self.env.copy()
@@ -716,6 +725,216 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertEqual(
             Path(migrated_from), (legacy_data / "journal.sqlite3").resolve()
         )
+
+    def test_goal_lifecycle_is_visible_and_included_in_context(self) -> None:
+        added = self.run_cli(
+            "goal",
+            "add",
+            "--name",
+            "Publish the research note",
+            "--outcome",
+            "A reviewed note is publicly available.",
+        )
+        self.assertEqual(added.returncode, 0, added.stderr)
+        goal = json.loads(added.stdout)
+        self.assertEqual(goal["status"], "active")
+
+        context = self.run_cli("context", "--period", "daily")
+        self.assertEqual(context.returncode, 0, context.stderr)
+        self.assertIn("Publish the research note", context.stdout)
+        self.assertIn("Goal progress", context.stdout)
+        self.assertIn("Never mark a goal complete", context.stdout)
+        self.assertIn(
+            "Publish the research note",
+            (self.reports / "Goals.md").read_text(encoding="utf-8"),
+        )
+
+        completed = self.run_cli("goal", "complete", goal["id"])
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout)["status"], "completed")
+        active = self.run_cli("goal", "list")
+        self.assertEqual(json.loads(active.stdout)["goals"], [])
+
+    def test_open_threads_sync_without_auto_resolving_omissions(self) -> None:
+        report = self.reports / "Daily" / "2026" / "08" / "2026-08-09.md"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(
+            "# Retra — 9 August 2026\n\n"
+            "<!-- retra:open-items:start -->\n"
+            "## Незавершённые вопросы\n"
+            "- Confirm the public installation. (`session:abc`)\n"
+            "- Review the release notes.\n"
+            "<!-- retra:open-items:end -->\n\n"
+            "## Suggested first step\n- Run the installer.\n",
+            encoding="utf-8",
+        )
+        first = self.run_cli("thread", "sync-report", "--path", str(report))
+        second = self.run_cli("thread", "sync-report", "--path", str(report))
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(json.loads(first.stdout)["added"], 2)
+        self.assertEqual(json.loads(second.stdout)["added"], 0)
+
+        listing = self.run_cli("thread", "list")
+        threads = json.loads(listing.stdout)["open_threads"]
+        self.assertEqual(len(threads), 2)
+        self.assertIn(
+            "Confirm the public installation",
+            (self.reports / "OpenThreads.md").read_text(encoding="utf-8"),
+        )
+
+        report.write_text(
+            "# Retra — 9 August 2026\n\n"
+            "<!-- retra:open-items:start -->\n"
+            "## Questions en cours\n- Review the release notes.\n"
+            "<!-- retra:open-items:end -->\n",
+            encoding="utf-8",
+        )
+        refreshed = self.run_cli("thread", "sync-report", "--path", str(report))
+        self.assertEqual(refreshed.returncode, 0, refreshed.stderr)
+        still_open = self.run_cli("thread", "list")
+        self.assertEqual(len(json.loads(still_open.stdout)["open_threads"]), 2)
+
+        resolved = self.run_cli("thread", "resolve", threads[0]["id"])
+        self.assertEqual(resolved.returncode, 0, resolved.stderr)
+        self.assertEqual(json.loads(resolved.stdout)["status"], "resolved")
+
+    def test_refresh_index_imports_latest_daily_open_threads(self) -> None:
+        report = self.reports / "Daily" / "2026" / "08" / "2026-08-10.md"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(
+            "# Retra — 10 August 2026\n\n"
+            "## Open threads\n- Finish the clean-install test.\n",
+            encoding="utf-8",
+        )
+        refreshed = self.run_cli("refresh-index", "--cwd", str(self.cwd))
+        self.assertEqual(refreshed.returncode, 0, refreshed.stderr)
+        listing = self.run_cli("thread", "list")
+        self.assertIn("Finish the clean-install test", listing.stdout)
+
+    def test_corrections_are_scoped_and_included_as_constraints(self) -> None:
+        anchor = date.today().isoformat()
+        added = self.run_cli(
+            "correction",
+            "add",
+            "--text",
+            "The Schedule issue was fixed and must not remain open.",
+            "--date",
+            anchor,
+            "--session",
+            "thr_schedule",
+        )
+        self.assertEqual(added.returncode, 0, added.stderr)
+        correction = json.loads(added.stdout)
+
+        context = self.run_cli("context", "--period", "daily", "--date", anchor)
+        self.assertEqual(context.returncode, 0, context.stderr)
+        self.assertIn("User-provided corrections", context.stdout)
+        self.assertIn("Schedule issue was fixed", context.stdout)
+        self.assertIn("explicit factual constraints", context.stdout)
+
+        other = self.run_cli(
+            "context",
+            "--period",
+            "daily",
+            "--date",
+            "2025-01-01",
+        )
+        self.assertNotIn("Schedule issue was fixed", other.stdout)
+        archived = self.run_cli("correction", "archive", correction["id"])
+        self.assertEqual(json.loads(archived.stdout)["status"], "archived")
+
+    def test_memory_search_prefers_reports_and_can_include_raw_events(self) -> None:
+        report = self.reports / "Daily" / "2026" / "08" / "2026-08-08.md"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(
+            "# Retra\n\nWe rejected cloud synchronization to preserve local privacy.\n",
+            encoding="utf-8",
+        )
+        captured = self.run_cli(
+            "capture",
+            payload={
+                "session_id": "thr_memory",
+                "turn_id": "turn_memory",
+                "cwd": str(self.cwd),
+                "hook_event_name": "UserPromptSubmit",
+                "prompt": "Raw detail: synchronization would add an external backend.",
+            },
+        )
+        self.assertEqual(captured.returncode, 0, captured.stderr)
+
+        reports_only = self.run_cli("search", "cloud synchronization")
+        self.assertEqual(reports_only.returncode, 0, reports_only.stderr)
+        self.assertIn("Report matches: 1", reports_only.stdout)
+        self.assertIn("Journal matches: 0", reports_only.stdout)
+        self.assertIn("preserve local privacy", reports_only.stdout)
+
+        with_events = self.run_cli(
+            "search", "synchronization", "--include-events"
+        )
+        self.assertIn("thr_memory", with_events.stdout)
+        self.assertIn("Prefer report evidence", with_events.stdout)
+
+    def test_compare_uses_existing_reports_and_rejects_same_period(self) -> None:
+        for report_date, outcome in (
+            ("2026-08-08", "First outcome"),
+            ("2026-08-09", "Second outcome"),
+        ):
+            report = (
+                self.reports / "Daily" / "2026" / "08" / f"{report_date}.md"
+            )
+            report.parent.mkdir(parents=True, exist_ok=True)
+            report.write_text(f"# Retra\n\n{outcome}\n", encoding="utf-8")
+        compared = self.run_cli(
+            "compare",
+            "--period",
+            "daily",
+            "--date",
+            "2026-08-09",
+            "--against",
+            "2026-08-08",
+        )
+        self.assertEqual(compared.returncode, 0, compared.stderr)
+        self.assertIn("First outcome", compared.stdout)
+        self.assertIn("Second outcome", compared.stdout)
+        self.assertIn("Do not assign a productivity score", compared.stdout)
+
+        same = self.run_cli(
+            "compare",
+            "--period",
+            "weekly",
+            "--date",
+            "2026-08-08",
+            "--against",
+            "2026-08-09",
+        )
+        self.assertNotEqual(same.returncode, 0)
+        self.assertIn("same report period", same.stderr)
+
+    def test_profiles_and_detail_levels_change_report_preferences(self) -> None:
+        configured = self.run_cli(
+            "configure",
+            "--profile",
+            "research",
+            "--detail-level",
+            "brief",
+        )
+        self.assertEqual(configured.returncode, 0, configured.stderr)
+        settings = json.loads(configured.stdout)
+        self.assertEqual(settings["profile"], "research")
+        self.assertEqual(settings["detail_level"], "brief")
+
+        status = self.run_cli("status")
+        parsed = json.loads(status.stdout)
+        self.assertEqual(parsed["context_default_max_chars"], 14_000)
+        context = self.run_cli("context", "--period", "daily")
+        self.assertIn("Profile: `research`", context.stdout)
+        self.assertIn("Detail level: `brief`", context.stdout)
+
+        profiles = self.run_cli("profile", "list")
+        self.assertIn("project-management", profiles.stdout)
+        applied = self.run_cli("profile", "apply", "learning")
+        self.assertEqual(json.loads(applied.stdout)["active"], "learning")
 
 
 if __name__ == "__main__":

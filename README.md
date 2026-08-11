@@ -3,7 +3,9 @@
 Retra is a free, local-first Codex plugin that turns Codex-assisted activity
 into evidence-based daily, weekly, and monthly Markdown reviews. It can follow
 user-selected themes across software work, learning, research, writing,
-planning, and other projects.
+planning, and other projects. It can also answer questions from local work
+memory, carry unresolved questions, compare periods, apply report corrections,
+and track outcome-oriented goals.
 
 Retra has no account, telemetry, or external backend. Its journal stays on the
 user's computer. Report generation uses the user's existing Codex session and

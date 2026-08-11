@@ -33,6 +33,25 @@ stored locally, included as observation lenses during report generation, and
 shown in `Tracking.md`. A missing signal means only that the activity was not
 recorded in Codex; it does not imply that it did not happen elsewhere.
 
+Retra also keeps a local layer of working memory:
+
+- **Ask Retra** searches generated reports first and consults compact raw journal
+  events only when report evidence is insufficient.
+- **Open threads** carry unresolved questions and work between reports without
+  treating omission as completion.
+- **Corrections** preserve user-provided factual constraints for matching future
+  reports and memory answers.
+- **Goals** track intended outcomes separately from observation focuses.
+- **Period comparison** highlights direction changes, recurring friction, and
+  carried work without scoring productivity.
+- **Profiles and detail levels** adapt emphasis and context size for general
+  work, development, project management, research, learning, content, or
+  personal use.
+
+These records stay in the same local SQLite database. Human-readable mirrors
+are generated as `Goals.md`, `OpenThreads.md`, `Corrections.md`, and
+`Tracking.md` in the report project.
+
 Daily reviews use compact journal evidence. Weekly reviews read daily reports,
 and monthly reviews read weekly reports, so raw activity is not repeatedly sent
 through the model at every level. Source bundles default to a 30,000-character
@@ -49,6 +68,9 @@ For example:
     ├── README.md
     ├── Today.md
     ├── Tracking.md
+    ├── Goals.md
+    ├── OpenThreads.md
+    ├── Corrections.md
     ├── Daily/
     ├── Weekly/
     ├── Monthly/
@@ -86,6 +108,15 @@ sh scripts/run-retrospective.sh status
 sh scripts/run-retrospective.sh focus add --name "Learning progress" --guidance "Notice practiced topics and remaining questions"
 sh scripts/run-retrospective.sh focus list --all
 sh scripts/run-retrospective.sh focus pause "Learning progress"
+sh scripts/run-retrospective.sh goal add --name "Publish the beta" --outcome "A public release is available"
+sh scripts/run-retrospective.sh goal complete "Publish the beta"
+sh scripts/run-retrospective.sh thread list --all
+sh scripts/run-retrospective.sh correction add --text "The Schedule issue was fixed" --date 2026-08-08
+sh scripts/run-retrospective.sh search "Why did we reject synchronization?"
+sh scripts/run-retrospective.sh search "What was decided about Schedule?" --include-events
+sh scripts/run-retrospective.sh compare --period weekly --date 2026-08-10 --against 2026-08-03
+sh scripts/run-retrospective.sh profile apply research
+sh scripts/run-retrospective.sh configure --detail-level brief
 sh scripts/run-retrospective.sh context --period daily --date 2026-08-08
 sh scripts/run-retrospective.sh report-path --period daily --date 2026-08-08
 sh scripts/run-retrospective.sh refresh-index
@@ -100,7 +131,7 @@ closing time, such as `18:00`, makes events after that boundary part of the next
 workday. This prevents late activity from being lost after an earlier daily
 report has already been generated.
 
-## Current MVP boundaries
+## Current beta boundaries
 
 - Codex is the only supported host.
 - The plugin creates the local report folder on the first trusted hook, but the

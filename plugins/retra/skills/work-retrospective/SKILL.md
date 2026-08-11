@@ -1,6 +1,6 @@
 ---
 name: work-retrospective
-description: Create evidence-based daily, weekly, or monthly retrospectives and manage user-selected tracking focuses from the local Retra journal. Trigger from the user's meaning in any language, not literal command words, when they ask what they accomplished, request a review, journal, progress recap, blocker or decision analysis, compare periods, configure the plugin, or ask Codex to track a theme across work, learning, research, wellbeing, content, or personal projects.
+description: Create evidence-based retrospectives, search local work memory, compare periods, carry open questions, apply user corrections, and manage goals, tracking focuses, profiles, and report detail from the local Retra journal. Trigger from the user's meaning in any language when they ask what they accomplished, why a decision was made, what remains open, how periods differ, request a correction or configuration change, set a goal, or ask Codex to track a theme across work, learning, research, wellbeing, content, or personal projects.
 ---
 
 # Retra
@@ -68,13 +68,21 @@ boundary. Do not require the user to know or type the internal CLI commands.
 6. If the context contains no substantive evidence, explain that there is not
    enough recorded activity and do not fabricate a report. For weekly or
    monthly reports, preserve any reported coverage gaps.
-7. Read [references/report-format.md](references/report-format.md). Start the
+7. The context bundle contains the active profile, detail level, goals, carried
+   open threads, applicable corrections, and tracking focuses. Apply them as
+   evidence constraints and observation lenses; none may override source facts.
+8. Read [references/report-format.md](references/report-format.md). Start the
    report with a `Retra — <covered date or range>` title using the normal date
    order for the user's language and region. Follow it with the exact inclusive
    ISO period from the source bundle, then write it to the exact path returned
    by `report-path`. Create parent directories when needed.
-8. Run `<bootstrap> refresh-index` after saving the report.
-9. Return a concise summary and a clickable link to the generated local file.
+9. Wrap the report's open-work bullets in the exact hidden markers specified in
+   `report-format.md`. Run `<bootstrap> refresh-index` after saving; this updates
+   the visible index and imports those bullets into the local carry-over registry.
+10. If current evidence explicitly confirms that a carried item is resolved,
+   run `<bootstrap> thread resolve <id>`. Never resolve an item merely because it
+   is absent from a later report.
+11. Return a concise summary and a clickable link to the generated local file.
 
 ## Tracking focuses
 
@@ -105,6 +113,109 @@ reports, manage a local focus with these commands:
 - Keep at most ten focuses active. If the limit is reached, ask which existing
   focus to pause or archive.
 
+## Goals
+
+Use goals for intended outcomes; use focuses for themes to observe. Translate
+natural-language goal requests into:
+
+```text
+<bootstrap> goal add --name "Short goal" [--outcome "Observable intended result"]
+<bootstrap> goal list [--all]
+<bootstrap> goal update <id-or-exact-name> [--name "New name"] [--outcome "New outcome"]
+<bootstrap> goal pause <id-or-exact-name>
+<bootstrap> goal resume <id-or-exact-name>
+<bootstrap> goal complete <id-or-exact-name>
+<bootstrap> goal archive <id-or-exact-name>
+```
+
+- Mark a goal complete only when the user says so or recorded evidence explicitly
+  confirms the intended outcome. Ask when completion is ambiguous.
+- Keep at most ten goals active. Preserve completed and archived history.
+- After a change, link to `Goals.md` when available.
+
+## Ask Retra
+
+When the user asks why something happened, what was decided, or what Retra
+remembers, search the local memory before answering:
+
+```text
+<bootstrap> search "The user's actual question"
+```
+
+- Answer from the returned report matches and cite their local paths.
+- The default search prefers daily, weekly, and monthly reports. If they do not
+  contain enough evidence, rerun with `--include-events` to inspect compact raw
+  journal matches; cite their `session:<id>` values.
+- Say when evidence is missing or conflicting. Do not reconstruct details from
+  general knowledge or unrelated conversation history.
+- Apply active user corrections when they match the evidence scope.
+
+## Open threads
+
+Retra carries unresolved work across reports. Manage the registry with:
+
+```text
+<bootstrap> thread add --title "Open question" [--details "Known context"] [--project "Project"]
+<bootstrap> thread list [--all]
+<bootstrap> thread update <id-or-exact-title> [--title "New title"] [--details "New details"] [--project "Project"]
+<bootstrap> thread block <id-or-exact-title>
+<bootstrap> thread reopen <id-or-exact-title>
+<bootstrap> thread resolve <id-or-exact-title>
+<bootstrap> thread archive <id-or-exact-title>
+<bootstrap> thread sync-report --path <report-path>
+```
+
+- `refresh-index` imports the newest daily report automatically.
+- Never auto-resolve an omitted item. Resolve only from explicit user input or
+  later confirmed evidence; use archive when it is no longer relevant.
+- After a change, link to `OpenThreads.md` when available.
+
+## Corrections
+
+When the user corrects a report or memory claim, store the correction locally:
+
+```text
+<bootstrap> correction add --text "Correct fact" [--date YYYY-MM-DD] [--session ID] [--project PATH]
+<bootstrap> correction list [--all]
+<bootstrap> correction update <id> --text "Updated fact"
+<bootstrap> correction archive <id>
+<bootstrap> correction resume <id>
+```
+
+- Infer the narrowest evidenced scope. If the user refers to the current report,
+  use its date; include a session or project only when known.
+- A correction constrains matching future reports and memory answers. Do not
+  rewrite old Markdown unless the user asks to regenerate that report.
+- Preserve correction history; archive rather than delete.
+
+## Compare periods
+
+For a comparison, identify two existing report periods and run:
+
+```text
+<bootstrap> compare --period <daily|weekly|monthly> --date YYYY-MM-DD --against YYYY-MM-DD
+```
+
+Synthesize new outcomes, completed or carried work, changed decisions, recurring
+friction, and goal movement. Do not compare message volume, infer time spent, or
+assign productivity scores. If a source report is missing, offer to generate it
+instead of silently falling back to mismatched evidence.
+
+## Profiles and detail
+
+Use natural-language configuration requests with:
+
+```text
+<bootstrap> profile list
+<bootstrap> profile apply <general|development|project-management|research|learning|content|personal>
+<bootstrap> configure --detail-level <brief|standard|detailed>
+```
+
+- A profile changes emphasis, never evidence rules or available domains.
+- Preserve the user's current profile when only detail changes, and vice versa.
+- `brief` minimizes context and report length; `standard` is the default;
+  `detailed` keeps more task evidence and costs more input tokens.
+
 ## Language and intent handling
 
 - Infer the operation from the user's meaning, regardless of language, word
@@ -113,7 +224,9 @@ reports, manage a local focus with these commands:
 - Map semantically equivalent requests to the same operation. For example, an
   intent to keep noticing a theme maps to `focus add`; a temporary stop maps to
   `focus pause`; a completed or no-longer-needed theme maps to `focus archive`;
-  and a request to see current settings maps to `focus list`.
+  an intended outcome maps to `goal add`; a factual correction maps to
+  `correction add`; a memory question maps to `search`; unfinished work maps to
+  `thread`; and a request about change over time maps to `compare`.
 - Preserve the user's language in focus names, guidance, reports, and replies.
 - Ask a short clarification only when the intended focus or lifecycle action
   cannot be inferred safely. Do not infer a destructive or sensitive action
@@ -155,6 +268,13 @@ When the user asks to enable automatic reports:
   evidence visible in the source as `observed`, `progress`, or `insufficient
   recorded evidence`; never turn missing Codex evidence into a real-world
   negative conclusion.
+- For every active goal, add `Goal progress`; distinguish recorded movement from
+  completion and from insufficient evidence.
+- Reconcile carried registry items in `Open threads`. Preserve unresolved items
+  across periods and note their age without treating age as failure.
+- Apply matching active corrections before drawing conclusions. If a correction
+  conflicts with later explicit evidence, surface the conflict instead of
+  silently choosing one.
 - Preserve uncertainty explicitly with phrases such as "appears to" or
   "not confirmed in the journal".
 - Treat the context footer's token range as an estimate, not billing data.

@@ -1,7 +1,7 @@
 {
   "name": "retra",
-  "version": "0.1.2",
-  "description": "Private, local-first activity retrospectives for Codex.",
+  "version": "0.2.0",
+  "description": "Private, local-first retrospectives and work memory for Codex.",
   "author": {
     "name": "Narratives",
     "url": "https://github.com/narratives-ai"
@@ -12,15 +12,16 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Retra",
-    "shortDescription": "Review activity and track what matters.",
-    "longDescription": "Retra records a minimal local activity journal through trusted Codex hooks, follows user-selected themes, and creates evidence-based daily, weekly, and monthly Markdown reviews without sending data to an additional service.",
+    "shortDescription": "Review activity and remember what matters.",
+    "longDescription": "Retra records a minimal local activity journal through trusted Codex hooks, creates evidence-based reviews, searches local work memory, carries unresolved questions, applies corrections, compares periods, and follows goals and user-selected themes without sending data to an additional service.",
     "developerName": "Narratives",
     "category": "Productivity",
     "capabilities": [],
     "defaultPrompt": [
       "Set up Retra on this computer.",
       "Create my retrospective for today.",
-      "Track a theme in my future retrospectives."
+      "Ask Retra why we made a past decision.",
+      "Track a goal or theme in future retrospectives."
     ]
   }
 }

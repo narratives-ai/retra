@@ -62,11 +62,17 @@ _<localized Date label>: YYYY-MM-DD_
 ## Friction and failed approaches
 - Concrete blocker, failure, or repeated loop. (`session:...`)
 
+<!-- retra:open-items:start -->
 ## Open threads
 - Work that remains unresolved or whose result was not confirmed.
+<!-- retra:open-items:end -->
 
 ## Suggested first step
 - One specific, evidence-grounded action for the next work period.
+
+## Goal progress
+### User-selected goal
+- `Progress`, `Completed with explicit evidence`, or `Insufficient recorded evidence`, followed by a factual explanation.
 
 ## Tracked signals
 ### User-selected focus
@@ -80,7 +86,10 @@ _<localized Date label>: YYYY-MM-DD_
 Omit empty sections except `Outcomes`, `Open threads`, and `Suggested first
 step`. Include `Tracked signals` whenever active focuses are present, covering
 every active focus even when the source has insufficient evidence. If no
-completed outcome is evidenced, state that clearly.
+completed outcome is evidenced, state that clearly. Include `Goal progress`
+whenever active goals are present. Preserve the exact hidden
+`retra:open-items:start` and `retra:open-items:end` comments around the
+open-work bullets; the visible heading may be localized.
 
 ## Weekly
 
@@ -115,6 +124,11 @@ A concise synthesis of progress and direction.
 - Progress, risks, and open questions.
 ```
 
+Include `Goal progress` before `Tracked signals` whenever active goals are
+present. Weekly and monthly reports may use localized open-work headings, but
+when they are explicitly synchronized into the registry, wrap those bullets in
+the same hidden open-item markers.
+
 ## Monthly
 
 Use `# Retra — <localized month and year>` followed by the exact inclusive
@@ -134,3 +148,31 @@ next month.
   writing, planning, or another Codex-assisted activity.
 - Missing Codex evidence means only that the source did not record a signal; it
   does not prove that the real-world activity did not happen.
+
+## Detail levels and profiles
+
+- `brief`: keep only the highest-signal outcomes, decisions, unresolved work,
+  goal movement, and one next step. Avoid project breakdown unless needed.
+- `standard`: use the structures above with compact evidence-backed bullets.
+- `detailed`: preserve more rationale, project breakdown, repeated friction,
+  and carried-work context without adding unsupported interpretation.
+
+Apply the active profile as emphasis: development favors shipped behavior and
+verification; project management favors milestones and dependencies; research
+favors questions and uncertainty; learning favors demonstrated understanding;
+content favors drafts and publishing; personal favors explicitly discussed
+intentions and routines. `general` stays balanced. Profiles never change the
+evidence or privacy rules.
+
+## Period comparisons
+
+When answering from a comparison bundle, do not create or overwrite a normal
+period report unless asked. Summarize:
+
+1. new outcomes and completed work;
+2. carried or newly opened work;
+3. changed decisions or direction;
+4. recurring or resolved friction;
+5. goal movement and the next evidence-grounded priority.
+
+Do not compare activity volume, infer effort, or assign a score.

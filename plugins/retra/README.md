@@ -48,6 +48,17 @@ Retra also keeps a local layer of working memory:
   work, development, project management, research, learning, content, or
   personal use.
 
+Each generated report can include a deterministic local SVG period map with
+three evidence-backed columns: projects or areas, confirmed outcomes, and open
+threads. The helper derives the map from the finished Markdown report, embeds
+it below the covered-period line, and stores it under `Visuals/`. This adds no
+model request, external service, inferred work hours, or productivity score.
+
+Automatic reports can reuse one persistent Codex task per cadence. After a
+successful run, the task is renamed to show the latest covered date or range,
+for example `Retra · Ежедневный — последний отчёт 10 августа`. Daily, weekly,
+and monthly reports remain in separate tasks so their histories do not mix.
+
 These records stay in the same local SQLite database. Human-readable mirrors
 are generated as `Goals.md`, `OpenThreads.md`, `Corrections.md`, and
 `Tracking.md` in the report project.
@@ -74,6 +85,7 @@ For example:
     ├── Daily/
     ├── Weekly/
     ├── Monthly/
+    ├── Visuals/
     └── Projects/
 ```
 
@@ -119,6 +131,7 @@ sh scripts/run-retrospective.sh profile apply research
 sh scripts/run-retrospective.sh configure --detail-level brief
 sh scripts/run-retrospective.sh context --period daily --date 2026-08-08
 sh scripts/run-retrospective.sh report-path --period daily --date 2026-08-08
+sh scripts/run-retrospective.sh visualize --path /path/to/2026-08-08.md
 sh scripts/run-retrospective.sh refresh-index
 sh scripts/run-retrospective.sh prune --days 30
 ```
@@ -136,9 +149,9 @@ report has already been generated.
 - Codex is the only supported host.
 - The plugin creates the local report folder on the first trusted hook, but the
   current public plugin lifecycle does not register folders in the Projects UI.
-- Automatic report generation uses a Codex scheduled task. Creating that task
-  remains a user-approved onboarding action because plugin installation does
-  not run arbitrary post-install scripts.
+- Automatic report generation uses a persistent Codex recurring task for each
+  cadence. Creating or migrating that task remains a user-approved onboarding
+  action because plugin installation does not run arbitrary post-install scripts.
 - Weekly reports require daily reports for complete coverage; monthly reports
   require weekly reports. Missing sources are reported explicitly.
 - The transcript file is not parsed because its format is not a stable hook

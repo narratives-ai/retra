@@ -24,6 +24,7 @@ REPORT_FORMAT = (
     / "references"
     / "report-format.md"
 )
+SKILL = REPORT_FORMAT.parents[1] / "SKILL.md"
 MODULE_SPEC = importlib.util.spec_from_file_location("retrospective_helper", SCRIPT)
 assert MODULE_SPEC and MODULE_SPEC.loader
 RETROSPECTIVE = importlib.util.module_from_spec(MODULE_SPEC)
@@ -69,6 +70,7 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertTrue((self.reports / "README.md").is_file())
         self.assertTrue((self.reports / "Daily").is_dir())
         self.assertTrue((self.reports / "Weekly").is_dir())
+        self.assertTrue((self.reports / "Visuals").is_dir())
         self.assertTrue((self.reports / "Tracking.md").is_file())
         self.assertTrue((self.reports / "Goals.md").is_file())
         self.assertTrue((self.reports / "OpenThreads.md").is_file())
@@ -165,8 +167,17 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("default consistently to US English", report_format)
         self.assertIn("Never use only an ISO week number", report_format)
         self.assertIn("retra:open-items:start", report_format)
+        self.assertIn("retra:outcomes:start", report_format)
+        self.assertIn("retra:projects:start", report_format)
+        self.assertIn("Local visualization", report_format)
+        self.assertIn("productivity score", report_format)
         self.assertIn("Goal progress", report_format)
         self.assertIn("Detail levels and profiles", report_format)
+
+        skill = SKILL.read_text(encoding="utf-8")
+        self.assertIn("visualize --path <report-path>", skill)
+        self.assertIn("heartbeat", skill)
+        self.assertIn("Never rename an unrelated task", skill)
 
     def test_setup_infers_sibling_folder_without_prompt(self) -> None:
         env = self.env.copy()
@@ -397,6 +408,61 @@ class RetrospectiveCliTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(result.stdout.strip().endswith("Weekly/2026/2026-W32.md"))
+
+    def test_visualize_generates_and_embeds_local_svg_idempotently(self) -> None:
+        setup = self.run_cli("setup", "--cwd", str(self.cwd))
+        self.assertEqual(setup.returncode, 0, setup.stderr)
+        report = self.reports / "Daily" / "2026" / "08" / "2026-08-08.md"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(
+            "# Retra — 8 августа 2026\n"
+            "_Дата: 2026-08-08_\n\n"
+            "<!-- retra:outcomes:start -->\n"
+            "## Результаты\n"
+            "- Устранено подтормаживание Schedule. (`session:test`)\n"
+            "<!-- retra:outcomes:end -->\n\n"
+            "<!-- retra:open-items:start -->\n"
+            "## Открытые вопросы\n"
+            "- Проверить поведение на устройстве.\n"
+            "<!-- retra:open-items:end -->\n\n"
+            "<!-- retra:projects:start -->\n"
+            "## По проектам\n"
+            "### Narratives & Tools\n"
+            "- Исправлен Schedule.\n"
+            "<!-- retra:projects:end -->\n",
+            encoding="utf-8",
+        )
+
+        first = self.run_cli(
+            "visualize", "--path", str(report), "--cwd", str(self.cwd)
+        )
+        self.assertEqual(first.returncode, 0, first.stderr)
+        payload = json.loads(first.stdout)
+        visual = Path(payload["visual"])
+        self.assertTrue(visual.is_file())
+        self.assertTrue(str(visual).endswith("Visuals/Daily/2026/08/2026-08-08.svg"))
+        svg = visual.read_text(encoding="utf-8")
+        self.assertIn("Карта периода", svg)
+        self.assertIn("Narratives &amp; Tools", svg)
+        self.assertIn("Устранено подтормаживание Schedule", svg)
+        self.assertIn("Проверить поведение на устройстве", svg)
+        self.assertNotIn("<script", svg)
+
+        second = self.run_cli(
+            "visualize", "--path", str(report), "--cwd", str(self.cwd)
+        )
+        self.assertEqual(second.returncode, 0, second.stderr)
+        updated = report.read_text(encoding="utf-8")
+        self.assertEqual(updated.count("<!-- retra:visual:start -->"), 1)
+        self.assertIn("Visuals/Daily/2026/08/2026-08-08.svg", updated)
+        self.assertNotIn("<!-- retra:visual:end -->\n\n\n", updated)
+
+        refreshed = self.run_cli("refresh-index", "--cwd", str(self.cwd))
+        self.assertEqual(refreshed.returncode, 0, refreshed.stderr)
+        today = (self.reports / "Today.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "![Карта периода](Visuals/Daily/2026/08/2026-08-08.svg)", today
+        )
 
     def test_context_aggregates_tools_and_keeps_evidence(self) -> None:
         payloads = [

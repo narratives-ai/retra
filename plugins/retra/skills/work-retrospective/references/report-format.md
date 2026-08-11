@@ -53,8 +53,10 @@ than one way.
 # Retra — <localized full date>
 _<localized Date label>: YYYY-MM-DD_
 
+<!-- retra:outcomes:start -->
 ## Outcomes
 - Completed result with evidence. (`session:...`)
+<!-- retra:outcomes:end -->
 
 ## Decisions
 - Decision and its recorded rationale. (`session:...`)
@@ -78,9 +80,11 @@ _<localized Date label>: YYYY-MM-DD_
 ### User-selected focus
 - `Observed`, `Progress`, or `Insufficient recorded evidence`, followed by a factual explanation and session citation when available.
 
+<!-- retra:projects:start -->
 ## Activity by project
 ### Project name
 - Compact factual recap.
+<!-- retra:projects:end -->
 ```
 
 Omit empty sections except `Outcomes`, `Open threads`, and `Suggested first
@@ -100,8 +104,10 @@ _<localized Period label>: YYYY-MM-DD — YYYY-MM-DD_
 ## Week in one paragraph
 A concise synthesis of progress and direction.
 
+<!-- retra:outcomes:start -->
 ## Meaningful outcomes
 - Result and why it mattered. (`session:...`)
+<!-- retra:outcomes:end -->
 
 ## Decisions that shaped the work
 - Decision, rationale, and consequence when evidenced.
@@ -119,9 +125,11 @@ A concise synthesis of progress and direction.
 ### User-selected focus
 - Period-level signal or `Insufficient recorded evidence`.
 
+<!-- retra:projects:start -->
 ## Project breakdown
 ### Project name
 - Progress, risks, and open questions.
+<!-- retra:projects:end -->
 ```
 
 Include `Goal progress` before `Tracked signals` whenever active goals are
@@ -136,6 +144,19 @@ first and last dates of the calendar month. Then use the weekly structure,
 replacing week-specific language with monthly trends. Emphasize direction
 changes, repeated decisions, recurring blockers, and work carried into the
 next month.
+
+## Local visualization
+
+Keep the exact hidden `retra:outcomes` and `retra:projects` markers around the
+corresponding sections. After the report is saved, the Retra helper reads those
+sections plus the existing `retra:open-items` block and deterministically
+generates a local SVG period map. The helper embeds the image link directly
+below the report's ISO date or period line. Do not write SVG markup or invent
+chart values in the report itself.
+
+The visualization shows only evidence already present in the Markdown:
+projects or areas, confirmed outcomes, and open threads. It must not display a
+productivity score, inferred hours, message volume, or token counts.
 
 ## Style
 

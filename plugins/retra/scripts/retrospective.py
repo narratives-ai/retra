@@ -14,8 +14,10 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import textwrap
 import uuid
 from datetime import date, datetime, time, timedelta
+from html import escape
 from pathlib import Path
 from typing import Any, Iterable, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -40,6 +42,12 @@ MAX_OPEN_ITEM_DETAILS_CHARS = 1_200
 MAX_CORRECTION_CHARS = 1_200
 DEFAULT_DETAIL_LEVEL = "standard"
 DEFAULT_PROFILE = "general"
+VISUAL_START_MARKER = "<!-- retra:visual:start -->"
+VISUAL_END_MARKER = "<!-- retra:visual:end -->"
+PROJECTS_START_MARKER = "<!-- retra:projects:start -->"
+PROJECTS_END_MARKER = "<!-- retra:projects:end -->"
+OUTCOMES_START_MARKER = "<!-- retra:outcomes:start -->"
+OUTCOMES_END_MARKER = "<!-- retra:outcomes:end -->"
 
 DETAIL_LEVEL_MAX_CHARS = {
     "brief": 14_000,
@@ -1426,7 +1434,7 @@ def render_state_files(
 
 
 def initialize_reports_root(root: Path) -> None:
-    for relative in ("Daily", "Weekly", "Monthly", "Projects"):
+    for relative in ("Daily", "Weekly", "Monthly", "Projects", "Visuals"):
         (root / relative).mkdir(parents=True, exist_ok=True)
     readme = root / "README.md"
     if not readme.exists():
@@ -2260,11 +2268,258 @@ def report_path(root: Path, period: str, anchor: date) -> Path:
     return root / "Monthly" / f"{anchor.year:04d}" / f"{label}.md"
 
 
+def marked_report_block(content: str, start_marker: str, end_marker: str) -> str:
+    start = content.find(start_marker)
+    if start < 0:
+        return ""
+    start += len(start_marker)
+    end = content.find(end_marker, start)
+    return content[start:end] if end >= 0 else ""
+
+
+def compact_report_text(value: str) -> str:
+    text = re.sub(r"!\[([^]]*)\]\([^)]+\)", r"\1", value)
+    text = re.sub(r"\[([^]]+)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"\s*\(`?session:[^)]+\)\s*$", "", text)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = text.replace("`", "").replace("**", "").replace("__", "")
+    return " ".join(text.split()).strip(" -")
+
+
+def report_bullets(block: str) -> list[str]:
+    items: list[str] = []
+    for line in block.splitlines():
+        match = re.match(r"^\s*(?:[-*]|\d+[.)])\s+(.+?)\s*$", line)
+        if not match:
+            continue
+        item = compact_report_text(match.group(1))
+        if item:
+            items.append(item)
+    return items
+
+
+def report_section(content: str, aliases: Iterable[str]) -> str:
+    folded_aliases = tuple(alias.casefold() for alias in aliases)
+    lines = content.splitlines()
+    start: Optional[int] = None
+    for index, line in enumerate(lines):
+        match = re.match(r"^##\s+(.+?)\s*$", line)
+        if not match:
+            continue
+        heading = compact_report_text(match.group(1)).casefold()
+        if any(alias in heading for alias in folded_aliases):
+            start = index + 1
+            break
+    if start is None:
+        return ""
+    end = len(lines)
+    for index in range(start, len(lines)):
+        if lines[index].startswith("## "):
+            end = index
+            break
+    return "\n".join(lines[start:end])
+
+
+def report_map_data(content: str) -> dict[str, list[str]]:
+    project_block = marked_report_block(
+        content, PROJECTS_START_MARKER, PROJECTS_END_MARKER
+    ) or report_section(
+        content,
+        (
+            "activity by project", "project breakdown", "projects",
+            "по проектам", "проекты", "разбивка по проектам", "направления",
+        ),
+    )
+    projects = [
+        compact_report_text(match.group(1))
+        for line in project_block.splitlines()
+        if (match := re.match(r"^###\s+(.+?)\s*$", line))
+    ]
+
+    outcome_block = marked_report_block(
+        content, OUTCOMES_START_MARKER, OUTCOMES_END_MARKER
+    ) or report_section(
+        content,
+        (
+            "meaningful outcomes", "outcomes", "results", "итоги",
+            "результаты", "значимые результаты",
+        ),
+    )
+    outcomes = report_bullets(outcome_block)
+    open_items = [compact_report_text(item) for item in extract_open_items_from_report(content)]
+
+    if not projects:
+        projects = ["General" if not re.search(r"[А-Яа-яЁё]", content) else "Общее"]
+    return {
+        "projects": list(dict.fromkeys(projects)),
+        "outcomes": list(dict.fromkeys(outcomes)),
+        "open_items": list(dict.fromkeys(item for item in open_items if item)),
+    }
+
+
+def visual_path(root: Path, report: Path) -> Path:
+    relative = report.relative_to(root)
+    return root / "Visuals" / relative.with_suffix(".svg")
+
+
+def visual_labels(content: str) -> dict[str, str]:
+    if re.search(r"[А-Яа-яЁё]", content):
+        return {
+            "title": "Карта периода",
+            "projects": "Проекты и направления",
+            "outcomes": "Подтверждённые результаты",
+            "open_items": "Открытые вопросы",
+            "empty": "Нет подтверждённых данных",
+            "local": "Сформировано локально из отчёта Retra",
+        }
+    return {
+        "title": "Period map",
+        "projects": "Projects and areas",
+        "outcomes": "Confirmed outcomes",
+        "open_items": "Open threads",
+        "empty": "No confirmed evidence",
+        "local": "Generated locally from the Retra report",
+    }
+
+
+def svg_text_lines(value: str, width: int = 42, limit: int = 3) -> list[str]:
+    lines = textwrap.wrap(value, width=width, break_long_words=False, break_on_hyphens=False)
+    if not lines:
+        return [""]
+    if len(lines) > limit:
+        lines = lines[:limit]
+        lines[-1] = lines[-1].rstrip(" .") + "…"
+    return lines
+
+
+def svg_panel_height(items: list[str], empty: str) -> int:
+    visible = items[:6] or [empty]
+    cards_height = sum(42 + 20 * len(svg_text_lines(item)) for item in visible)
+    more_height = 28 if len(items) > len(visible) else 0
+    return 64 + cards_height + more_height + 20
+
+
+def svg_panel(
+    *, x: int, y: int, width: int, height: int, heading: str,
+    items: list[str], empty: str, accent: str,
+) -> list[str]:
+    parts = [
+        f'<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="20" fill="#ffffff" stroke="#e2e8f0"/>',
+        f'<rect x="{x}" y="{y}" width="8" height="{height}" rx="4" fill="{accent}"/>',
+        f'<text x="{x + 28}" y="{y + 42}" class="panel-title">{escape(heading)}</text>',
+    ]
+    visible = items[:6] or [empty]
+    card_y = y + 64
+    for item in visible:
+        lines = svg_text_lines(item)
+        card_height = 30 + 20 * len(lines)
+        parts.append(
+            f'<rect x="{x + 20}" y="{card_y}" width="{width - 40}" height="{card_height}" rx="12" fill="#f8fafc"/>'
+        )
+        for line_index, line in enumerate(lines):
+            text_y = card_y + 25 + 20 * line_index
+            parts.append(
+                f'<text x="{x + 36}" y="{text_y}" class="card-text">{escape(line)}</text>'
+            )
+        card_y += card_height + 12
+    if len(items) > len(visible):
+        parts.append(
+            f'<text x="{x + 28}" y="{min(y + height - 20, card_y + 8)}" class="more">+{len(items) - len(visible)}</text>'
+        )
+    return parts
+
+
+def render_report_visual(root: Path, report: Path) -> Path:
+    content = report.read_text(encoding="utf-8")
+    data = report_map_data(content)
+    labels = visual_labels(content)
+    report_title = next(
+        (compact_report_text(line[2:]) for line in content.splitlines() if line.startswith("# ")),
+        report.stem,
+    )
+    panel_y = 126
+    panel_height = max(
+        268,
+        *(svg_panel_height(data[key], labels["empty"]) for key in ("projects", "outcomes", "open_items")),
+    )
+    height = panel_y + panel_height + 36
+    parts = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="{height}" viewBox="0 0 1200 {height}" role="img" aria-label="{escape(labels["title"])}">',
+        "<style>",
+        "text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #172033; }",
+        ".map-title { font-size: 27px; font-weight: 700; }",
+        ".subtitle { font-size: 14px; fill: #64748b; }",
+        ".panel-title { font-size: 17px; font-weight: 650; }",
+        ".card-text { font-size: 14px; }",
+        ".more { font-size: 13px; fill: #64748b; }",
+        "</style>",
+        f'<rect width="1200" height="{height}" fill="#f1f5f9"/>',
+        f'<text x="40" y="46" class="map-title">{escape(labels["title"])}</text>',
+        f'<text x="40" y="76" class="subtitle">{escape(report_title)}</text>',
+        f'<text x="1160" y="76" text-anchor="end" class="subtitle">{escape(labels["local"])}</text>',
+    ]
+    panels = (
+        (40, labels["projects"], data["projects"], "#6366f1"),
+        (420, labels["outcomes"], data["outcomes"], "#10b981"),
+        (800, labels["open_items"], data["open_items"], "#f59e0b"),
+    )
+    for x, heading, items, accent in panels:
+        parts.extend(
+            svg_panel(
+                x=x, y=panel_y, width=360, height=panel_height,
+                heading=heading, items=items, empty=labels["empty"], accent=accent,
+            )
+        )
+    parts.append("</svg>")
+
+    destination = visual_path(root, report)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text("\n".join(parts) + "\n", encoding="utf-8")
+
+    relative_visual = Path(os.path.relpath(destination, report.parent)).as_posix()
+    visual_block = (
+        f"{VISUAL_START_MARKER}\n"
+        f"![{labels['title']}]({relative_visual})\n"
+        f"{VISUAL_END_MARKER}"
+    )
+    cleaned = re.sub(
+        rf"\n*{re.escape(VISUAL_START_MARKER)}.*?{re.escape(VISUAL_END_MARKER)}\n*",
+        "\n\n",
+        content,
+        flags=re.DOTALL,
+    )
+    lines = cleaned.splitlines()
+    insert_at = 1 if lines else 0
+    for index, line in enumerate(lines[:6]):
+        if line.startswith("_") and line.endswith("_"):
+            insert_at = index + 1
+            break
+    while insert_at < len(lines) and not lines[insert_at].strip():
+        del lines[insert_at]
+    lines[insert_at:insert_at] = ["", visual_block, ""]
+    report.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return destination
+
+
 def relative_links(root: Path, pattern: str, limit: int) -> list[str]:
     paths = sorted(root.glob(pattern), reverse=True)[:limit]
     return [
         f"- [{path.stem}]({path.relative_to(root).as_posix()})" for path in paths
     ]
+
+
+def today_report_content(root: Path, daily_report: Path) -> str:
+    content = daily_report.read_text(encoding="utf-8")
+    destination = visual_path(root, daily_report)
+    if destination.is_file() and VISUAL_START_MARKER in content:
+        relative_visual = destination.relative_to(root).as_posix()
+        content = re.sub(
+            rf"({re.escape(VISUAL_START_MARKER)}\s*\n!\[[^]]*\]\()[^)]+(\)\s*\n{re.escape(VISUAL_END_MARKER)})",
+            rf"\1{relative_visual}\2",
+            content,
+        )
+    return content
 
 
 def refresh_index(root: Path) -> None:
@@ -2309,7 +2564,9 @@ def refresh_index(root: Path) -> None:
     ]
     (root / "README.md").write_text("\n".join(content), encoding="utf-8")
     if daily_paths:
-        shutil.copyfile(daily_paths[0], root / "Today.md")
+        (root / "Today.md").write_text(
+            today_report_content(root, daily_paths[0]), encoding="utf-8"
+        )
 
 
 def search_terms(query: str) -> list[str]:
@@ -2938,6 +3195,33 @@ def command_report_path(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_visualize(args: argparse.Namespace) -> int:
+    connection = connect()
+    try:
+        root = ensure_reports_root(
+            connection,
+            Path(args.cwd or os.getcwd()).resolve(),
+            strict=True,
+        )
+    finally:
+        connection.close()
+    report = Path(args.path).expanduser().resolve()
+    try:
+        report.relative_to(root)
+    except ValueError as error:
+        raise ValueError(f"Report must be inside the Retra report project: {report}") from error
+    if report.suffix.casefold() != ".md" or not report.is_file():
+        raise ValueError(f"Report does not exist or is not Markdown: {report}")
+    visual = render_report_visual(root, report)
+    print(
+        json.dumps(
+            {"report": str(report), "visual": str(visual)},
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
 def command_refresh_index(args: argparse.Namespace) -> int:
     connection = connect()
     try:
@@ -3151,6 +3435,12 @@ def build_parser() -> argparse.ArgumentParser:
     path.add_argument("--date", help="Anchor date in YYYY-MM-DD form")
     path.add_argument("--cwd")
 
+    visualize = subparsers.add_parser(
+        "visualize", help="Generate and embed a local SVG map for a report"
+    )
+    visualize.add_argument("--path", required=True)
+    visualize.add_argument("--cwd")
+
     refresh = subparsers.add_parser(
         "refresh-index", help="Refresh README.md and Today.md"
     )
@@ -3192,6 +3482,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return command_compare(args)
     if args.command == "report-path":
         return command_report_path(args)
+    if args.command == "visualize":
+        return command_visualize(args)
     if args.command == "refresh-index":
         return command_refresh_index(args)
     if args.command == "prune":

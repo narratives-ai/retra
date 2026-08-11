@@ -76,13 +76,20 @@ boundary. Do not require the user to know or type the internal CLI commands.
    order for the user's language and region. Follow it with the exact inclusive
    ISO period from the source bundle, then write it to the exact path returned
    by `report-path`. Create parent directories when needed.
-9. Wrap the report's open-work bullets in the exact hidden markers specified in
-   `report-format.md`. Run `<bootstrap> refresh-index` after saving; this updates
-   the visible index and imports those bullets into the local carry-over registry.
+9. Preserve the exact hidden outcome, project, and open-work markers specified
+   in `report-format.md`. After saving, run
+   `<bootstrap> visualize --path <report-path>` to generate and embed the local
+   SVG period map, then run `<bootstrap> refresh-index`. This updates the visible
+   index and imports open-work bullets into the local carry-over registry.
 10. If current evidence explicitly confirms that a carried item is resolved,
    run `<bootstrap> thread resolve <id>`. Never resolve an item merely because it
    is absent from a later report.
-11. Return a concise summary and a clickable link to the generated local file.
+11. Return a concise summary and clickable links to the generated report and
+    visualization. If this is a dedicated Retra reporting task and Codex exposes
+    task-title controls, rename the task after a successful report to a localized
+    title such as `Retra · Daily — last report Aug 10`, `Retra · Ежедневный —
+    последний отчёт 10 августа`, or the corresponding weekly/monthly range.
+    Never rename an unrelated task where Retra was invoked incidentally.
 
 ## Tracking focuses
 
@@ -241,15 +248,21 @@ When the user asks to enable automatic reports:
 2. Save changes with `configure --timezone <zone> --day-closes-at HH:MM`.
 3. Ensure the report project exists with `setup`. The first trusted plugin hook
    also performs this setup automatically.
-4. Use Codex's scheduled-task capability to create one standalone daily task in
-   the Retrospective project, running locally at the configured time. Scheduled
-   tasks require the desktop app to be running and the computer to be awake.
+4. Use Codex's recurring-task capability to attach a heartbeat to one dedicated
+   Retra task, running locally at the configured time. Reuse and update an
+   existing Retra automation instead of creating a duplicate. If an older Retra
+   automation is a standalone cron job, migrate it to the persistent task after
+   confirming the target task. Scheduled runs require the desktop app to be
+   running and the computer to be awake.
 5. Make the scheduled prompt invoke this skill, run `closed-report-date`, and
    generate the daily report for exactly the returned date. Do not derive the
    report date from the task's calendar date: at midnight the completed report
    belongs to the day that just ended.
-6. If the closing time changes, update both the stored setting and the existing
-   scheduled task instead of creating a duplicate.
+6. After each successful run, update the dedicated task title with the localized
+   covered date or range and the meaning "last report". Keep separate persistent
+   tasks for daily, weekly, and monthly reports so periods do not mix.
+7. If the closing time changes, update both the stored setting and the existing
+   recurring task instead of creating a duplicate.
 
 ## Evidence rules
 

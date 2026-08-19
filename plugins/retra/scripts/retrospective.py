@@ -49,6 +49,11 @@ PROJECTS_END_MARKER = "<!-- retra:projects:end -->"
 OUTCOMES_START_MARKER = "<!-- retra:outcomes:start -->"
 OUTCOMES_END_MARKER = "<!-- retra:outcomes:end -->"
 
+# Retra 0.3.0 and earlier wrote these comments into reports as parser
+# boundaries. Keep accepting them when older reports are read, but never emit
+# them into user-facing Markdown.
+RETRA_COMMENT_RE = re.compile(r"^\s*<!--\s*retra:[^>]+-->\s*$", re.IGNORECASE)
+
 DETAIL_LEVEL_MAX_CHARS = {
     "brief": 14_000,
     "standard": DEFAULT_CONTEXT_MAX_CHARS,
@@ -967,6 +972,11 @@ def set_open_item_status(
 OPEN_SECTION_HINTS = (
     "open threads", "open items", "open questions", "carried work",
     "открыт", "незаверш", "перенесённые задачи", "в работе",
+    "asuntos pendientes", "preguntas abiertas", "hilos abiertos",
+    "questions en cours", "questions ouvertes", "tâches en suspens",
+    "offene punkte", "offene fragen", "unerledigt",
+    "questioni aperte", "questões em aberto", "itens pendentes",
+    "未解決", "待处理", "待處理", "미해결",
 )
 
 
@@ -2277,6 +2287,13 @@ def marked_report_block(content: str, start_marker: str, end_marker: str) -> str
     return content[start:end] if end >= 0 else ""
 
 
+def strip_retra_comments(content: str) -> str:
+    lines = [
+        line for line in content.splitlines() if not RETRA_COMMENT_RE.match(line)
+    ]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).rstrip() + "\n"
+
+
 def compact_report_text(value: str) -> str:
     text = re.sub(r"!\[([^]]*)\]\([^)]+\)", r"\1", value)
     text = re.sub(r"\[([^]]+)\]\([^)]+\)", r"\1", text)
@@ -2296,6 +2313,14 @@ def report_bullets(block: str) -> list[str]:
         if item:
             items.append(item)
     return items
+
+
+def report_subheadings(block: str) -> list[str]:
+    return [
+        compact_report_text(match.group(1))
+        for line in block.splitlines()
+        if (match := re.match(r"^###\s+(.+?)\s*$", line))
+    ]
 
 
 def report_section(content: str, aliases: Iterable[str]) -> str:
@@ -2321,6 +2346,19 @@ def report_section(content: str, aliases: Iterable[str]) -> str:
 
 
 def report_map_data(content: str) -> dict[str, list[str]]:
+    outcome_block = marked_report_block(
+        content, OUTCOMES_START_MARKER, OUTCOMES_END_MARKER
+    ) or report_section(
+        content,
+        (
+            "meaningful outcomes", "outcomes", "results", "итоги",
+            "результаты", "значимые результаты", "resultados",
+            "résultats", "ergebnisse", "risultati", "resultados significativos",
+            "成果", "結果", "결과",
+        ),
+    )
+    outcome_projects = report_subheadings(outcome_block)
+
     project_block = marked_report_block(
         content, PROJECTS_START_MARKER, PROJECTS_END_MARKER
     ) or report_section(
@@ -2330,21 +2368,8 @@ def report_map_data(content: str) -> dict[str, list[str]]:
             "по проектам", "проекты", "разбивка по проектам", "направления",
         ),
     )
-    projects = [
-        compact_report_text(match.group(1))
-        for line in project_block.splitlines()
-        if (match := re.match(r"^###\s+(.+?)\s*$", line))
-    ]
-
-    outcome_block = marked_report_block(
-        content, OUTCOMES_START_MARKER, OUTCOMES_END_MARKER
-    ) or report_section(
-        content,
-        (
-            "meaningful outcomes", "outcomes", "results", "итоги",
-            "результаты", "значимые результаты",
-        ),
-    )
+    project_breakdown = report_subheadings(project_block)
+    projects = outcome_projects or project_breakdown
     outcomes = report_bullets(outcome_block)
     open_items = [compact_report_text(item) for item in extract_open_items_from_report(content)]
 
@@ -2478,16 +2503,13 @@ def render_report_visual(root: Path, report: Path) -> Path:
     destination.write_text("\n".join(parts) + "\n", encoding="utf-8")
 
     relative_visual = Path(os.path.relpath(destination, report.parent)).as_posix()
-    visual_block = (
-        f"{VISUAL_START_MARKER}\n"
-        f"![{labels['title']}]({relative_visual})\n"
-        f"{VISUAL_END_MARKER}"
+    visual_block = f"![{labels['title']}]({relative_visual})"
+    cleaned = strip_retra_comments(content)
+    visual_link = re.compile(
+        rf"^!\[[^]]*\]\({re.escape(relative_visual)}\)\s*$"
     )
-    cleaned = re.sub(
-        rf"\n*{re.escape(VISUAL_START_MARKER)}.*?{re.escape(VISUAL_END_MARKER)}\n*",
-        "\n\n",
-        content,
-        flags=re.DOTALL,
+    cleaned = "\n".join(
+        line for line in cleaned.splitlines() if not visual_link.match(line)
     )
     lines = cleaned.splitlines()
     insert_at = 1 if lines else 0
@@ -2510,13 +2532,16 @@ def relative_links(root: Path, pattern: str, limit: int) -> list[str]:
 
 
 def today_report_content(root: Path, daily_report: Path) -> str:
-    content = daily_report.read_text(encoding="utf-8")
+    content = strip_retra_comments(daily_report.read_text(encoding="utf-8"))
     destination = visual_path(root, daily_report)
-    if destination.is_file() and VISUAL_START_MARKER in content:
-        relative_visual = destination.relative_to(root).as_posix()
+    if destination.is_file():
+        report_relative_visual = Path(
+            os.path.relpath(destination, daily_report.parent)
+        ).as_posix()
+        root_relative_visual = destination.relative_to(root).as_posix()
         content = re.sub(
-            rf"({re.escape(VISUAL_START_MARKER)}\s*\n!\[[^]]*\]\()[^)]+(\)\s*\n{re.escape(VISUAL_END_MARKER)})",
-            rf"\1{relative_visual}\2",
+            rf"(!\[[^]]*\]\(){re.escape(report_relative_visual)}(\))",
+            rf"\1{root_relative_visual}\2",
             content,
         )
     return content

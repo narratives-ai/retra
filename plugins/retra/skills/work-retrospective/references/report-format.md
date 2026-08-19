@@ -53,10 +53,12 @@ than one way.
 # Retra — <localized full date>
 _<localized Date label>: YYYY-MM-DD_
 
-<!-- retra:outcomes:start -->
 ## Outcomes
+### Project folder name
 - Completed result with evidence. (`session:...`)
-<!-- retra:outcomes:end -->
+
+### Another project folder
+- Completed result with evidence. (`session:...`)
 
 ## Decisions
 - Decision and its recorded rationale. (`session:...`)
@@ -64,10 +66,8 @@ _<localized Date label>: YYYY-MM-DD_
 ## Friction and failed approaches
 - Concrete blocker, failure, or repeated loop. (`session:...`)
 
-<!-- retra:open-items:start -->
 ## Open threads
 - Work that remains unresolved or whose result was not confirmed.
-<!-- retra:open-items:end -->
 
 ## Suggested first step
 - One specific, evidence-grounded action for the next work period.
@@ -80,20 +80,16 @@ _<localized Date label>: YYYY-MM-DD_
 ### User-selected focus
 - `Observed`, `Progress`, or `Insufficient recorded evidence`, followed by a factual explanation and session citation when available.
 
-<!-- retra:projects:start -->
-## Activity by project
-### Project name
-- Compact factual recap.
-<!-- retra:projects:end -->
 ```
 
 Omit empty sections except `Outcomes`, `Open threads`, and `Suggested first
 step`. Include `Tracked signals` whenever active focuses are present, covering
 every active focus even when the source has insufficient evidence. If no
 completed outcome is evidenced, state that clearly. Include `Goal progress`
-whenever active goals are present. Preserve the exact hidden
-`retra:open-items:start` and `retra:open-items:end` comments around the
-open-work bullets; the visible heading may be localized.
+whenever active goals are present. Group `Outcomes` by the basename of each recorded project root.
+Keep every project in one contiguous `###` block and preserve the user's language for
+section headings. Use a localized `No project` block only for evidence that has
+no reliable project root. Do not emit HTML comments or `retra:*` tags.
 
 ## Weekly
 
@@ -104,10 +100,9 @@ _<localized Period label>: YYYY-MM-DD — YYYY-MM-DD_
 ## Week in one paragraph
 A concise synthesis of progress and direction.
 
-<!-- retra:outcomes:start -->
 ## Meaningful outcomes
+### Project folder name
 - Result and why it mattered. (`session:...`)
-<!-- retra:outcomes:end -->
 
 ## Decisions that shaped the work
 - Decision, rationale, and consequence when evidenced.
@@ -125,17 +120,14 @@ A concise synthesis of progress and direction.
 ### User-selected focus
 - Period-level signal or `Insufficient recorded evidence`.
 
-<!-- retra:projects:start -->
 ## Project breakdown
 ### Project name
 - Progress, risks, and open questions.
-<!-- retra:projects:end -->
 ```
 
 Include `Goal progress` before `Tracked signals` whenever active goals are
-present. Weekly and monthly reports may use localized open-work headings, but
-when they are explicitly synchronized into the registry, wrap those bullets in
-the same hidden open-item markers.
+present. Group meaningful outcomes by recorded project-root basename just as in
+daily reports. Weekly and monthly reports may use localized open-work headings.
 
 ## Monthly
 
@@ -147,12 +139,12 @@ next month.
 
 ## Local visualization
 
-Keep the exact hidden `retra:outcomes` and `retra:projects` markers around the
-corresponding sections. After the report is saved, the Retra helper reads those
-sections plus the existing `retra:open-items` block and deterministically
-generates a local SVG period map. The helper embeds the image link directly
-below the report's ISO date or period line. Do not write SVG markup or invent
-chart values in the report itself.
+Use ordinary Markdown headings only. After the report is saved, the Retra
+helper reads the outcome, project, and open-thread sections by their headings
+and deterministically generates a local SVG period map. The helper embeds the
+image link directly below the report's ISO date or period line. Do not write
+HTML boundary comments, SVG markup, or invented chart values in the report
+itself.
 
 The visualization shows only evidence already present in the Markdown:
 projects or areas, confirmed outcomes, and open threads. It must not display a

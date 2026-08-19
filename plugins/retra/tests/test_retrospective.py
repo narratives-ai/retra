@@ -166,9 +166,9 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("2026-08-03 — 2026-08-09", report_format)
         self.assertIn("default consistently to US English", report_format)
         self.assertIn("Never use only an ISO week number", report_format)
-        self.assertIn("retra:open-items:start", report_format)
-        self.assertIn("retra:outcomes:start", report_format)
-        self.assertIn("retra:projects:start", report_format)
+        self.assertNotIn("<!-- retra:", report_format)
+        self.assertIn("Project folder name", report_format)
+        self.assertIn("basename of each recorded project root", report_format)
         self.assertIn("Local visualization", report_format)
         self.assertIn("productivity score", report_format)
         self.assertIn("Goal progress", report_format)
@@ -178,6 +178,11 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("visualize --path <report-path>", skill)
         self.assertIn("heartbeat", skill)
         self.assertIn("Never rename an unrelated task", skill)
+        self.assertIn("0 task card(s)", skill)
+        self.assertIn("likely hook/journal gap", skill)
+        self.assertIn("stop without writing the report", skill)
+        self.assertIn("never emit HTML boundary comments", skill)
+        self.assertIn("basename of each recorded project root", skill)
 
     def test_setup_infers_sibling_folder_without_prompt(self) -> None:
         env = self.env.copy()
@@ -417,19 +422,14 @@ class RetrospectiveCliTests(unittest.TestCase):
         report.write_text(
             "# Retra — 8 августа 2026\n"
             "_Дата: 2026-08-08_\n\n"
-            "<!-- retra:outcomes:start -->\n"
             "## Результаты\n"
+            "### Narratives & Tools\n"
             "- Устранено подтормаживание Schedule. (`session:test`)\n"
-            "<!-- retra:outcomes:end -->\n\n"
-            "<!-- retra:open-items:start -->\n"
+            "### Research Lab\n"
+            "- Проверена гипотеза ранжирования. (`session:test-2`)\n\n"
             "## Открытые вопросы\n"
             "- Проверить поведение на устройстве.\n"
-            "<!-- retra:open-items:end -->\n\n"
-            "<!-- retra:projects:start -->\n"
-            "## По проектам\n"
-            "### Narratives & Tools\n"
-            "- Исправлен Schedule.\n"
-            "<!-- retra:projects:end -->\n",
+            "\n",
             encoding="utf-8",
         )
 
@@ -444,6 +444,7 @@ class RetrospectiveCliTests(unittest.TestCase):
         svg = visual.read_text(encoding="utf-8")
         self.assertIn("Карта периода", svg)
         self.assertIn("Narratives &amp; Tools", svg)
+        self.assertIn("Research Lab", svg)
         self.assertIn("Устранено подтормаживание Schedule", svg)
         self.assertIn("Проверить поведение на устройстве", svg)
         self.assertNotIn("<script", svg)
@@ -453,9 +454,9 @@ class RetrospectiveCliTests(unittest.TestCase):
         )
         self.assertEqual(second.returncode, 0, second.stderr)
         updated = report.read_text(encoding="utf-8")
-        self.assertEqual(updated.count("<!-- retra:visual:start -->"), 1)
+        self.assertNotIn("<!-- retra:", updated)
+        self.assertEqual(updated.count("![Карта периода]("), 1)
         self.assertIn("Visuals/Daily/2026/08/2026-08-08.svg", updated)
-        self.assertNotIn("<!-- retra:visual:end -->\n\n\n", updated)
 
         refreshed = self.run_cli("refresh-index", "--cwd", str(self.cwd))
         self.assertEqual(refreshed.returncode, 0, refreshed.stderr)
@@ -463,6 +464,37 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn(
             "![Карта периода](Visuals/Daily/2026/08/2026-08-08.svg)", today
         )
+        self.assertNotIn("<!-- retra:", today)
+
+    def test_visualize_upgrades_legacy_comment_boundaries(self) -> None:
+        setup = self.run_cli("setup", "--cwd", str(self.cwd))
+        self.assertEqual(setup.returncode, 0, setup.stderr)
+        report = self.reports / "Daily" / "2026" / "08" / "2026-08-07.md"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(
+            "# Retra — 7 August 2026\n"
+            "_Date: 2026-08-07_\n\n"
+            "<!-- retra:outcomes:start -->\n"
+            "## Outcomes\n- Shipped the fix.\n"
+            "<!-- retra:outcomes:end -->\n\n"
+            "<!-- retra:open-items:start -->\n"
+            "## Open threads\n- Verify the release.\n"
+            "<!-- retra:open-items:end -->\n\n"
+            "<!-- retra:projects:start -->\n"
+            "## Activity by project\n### Example\n- Shipped.\n"
+            "<!-- retra:projects:end -->\n",
+            encoding="utf-8",
+        )
+
+        visualized = self.run_cli(
+            "visualize", "--path", str(report), "--cwd", str(self.cwd)
+        )
+        self.assertEqual(visualized.returncode, 0, visualized.stderr)
+        updated = report.read_text(encoding="utf-8")
+        self.assertNotIn("<!-- retra:", updated)
+        self.assertEqual(updated.count("![Period map]("), 1)
+        self.assertIn("## Outcomes", updated)
+        self.assertIn("## Open threads", updated)
 
     def test_context_aggregates_tools_and_keeps_evidence(self) -> None:
         payloads = [

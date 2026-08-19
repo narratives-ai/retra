@@ -20,8 +20,7 @@
     "defaultPrompt": [
       "Set up Retra on this computer.",
       "Create my retrospective for today.",
-      "Ask Retra why we made a past decision.",
-      "Track a goal or theme in future retrospectives."
+      "Ask Retra why we made a past decision."
     ]
   }
 }

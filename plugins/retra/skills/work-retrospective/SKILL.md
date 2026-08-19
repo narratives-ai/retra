@@ -65,9 +65,14 @@ boundary. Do not require the user to know or type the internal CLI commands.
    - `weekly` uses available daily Markdown reports, never the week's raw log;
    - `monthly` uses available weekly Markdown reports, never the month's raw log.
 
-6. If the context contains no substantive evidence, explain that there is not
-   enough recorded activity and do not fabricate a report. For weekly or
-   monthly reports, preserve any reported coverage gaps.
+6. Inspect `Coverage` before creating or overwriting a report. For a daily
+   bundle with `0 task card(s)`, stop without writing the report, visualization,
+   index, or open-thread registry. Explain that Retra has no substantive
+   journal evidence for the date; never translate missing evidence into the
+   claim that no work happened. Compare the requested date with `status.last_date`:
+   when the journal ends earlier, identify a likely hook/journal gap and ask the
+   user to verify hook trust before the next task. For weekly or monthly
+   reports, preserve every reported coverage gap.
 7. The context bundle contains the active profile, detail level, goals, carried
    open threads, applicable corrections, and tracking focuses. Apply them as
    evidence constraints and observation lenses; none may override source facts.
@@ -76,8 +81,9 @@ boundary. Do not require the user to know or type the internal CLI commands.
    order for the user's language and region. Follow it with the exact inclusive
    ISO period from the source bundle, then write it to the exact path returned
    by `report-path`. Create parent directories when needed.
-9. Preserve the exact hidden outcome, project, and open-work markers specified
-   in `report-format.md`. After saving, run
+9. Use ordinary Markdown headings and never emit HTML boundary comments or
+   `retra:*` tags. Group outcomes into contiguous `###` blocks named after the
+   basename of each recorded project root. After saving, run
    `<bootstrap> visualize --path <report-path>` to generate and embed the local
    SVG period map, then run `<bootstrap> refresh-index`. This updates the visible
    index and imports open-work bullets into the local carry-over registry.
@@ -273,7 +279,9 @@ When the user asks to enable automatic reports:
   `Open threads` unless a subsequent task explicitly reopens it.
 - Cite supporting sessions inline as `session:<id>` when the journal provides
   an id.
-- Group a daily report by outcome and project, not by conversation order.
+- Group outcomes by the basename of the recorded project-root folder, not by
+  conversation order. Keep each project in one contiguous `###` block and use
+  a localized `No project` block only when no reliable project root exists.
 - Identify repeated failures only when the event history shows repetition.
 - Do not infer emotions, diagnoses, effort, or time spent from message volume.
 - Do not assign a productivity score.

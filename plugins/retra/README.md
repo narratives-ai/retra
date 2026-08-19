@@ -53,6 +53,9 @@ three evidence-backed columns: projects or areas, confirmed outcomes, and open
 threads. The helper derives the map from the finished Markdown report, embeds
 it below the covered-period line, and stores it under `Visuals/`. This adds no
 model request, external service, inferred work hours, or productivity score.
+Reports use ordinary Markdown headings without internal HTML tags. Outcomes are
+grouped into contiguous blocks named after the recorded project-root folders,
+so work from `Narratives`, `GemmatoDeffusion`, and other projects does not mix.
 
 Automatic reports can reuse one persistent Codex task per cadence. After a
 successful run, the task is renamed to show the latest covered date or range,

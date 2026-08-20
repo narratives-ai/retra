@@ -47,6 +47,24 @@ they remain stable for sorting and automation. The exact ISO metadata line is
 required even when the localized title could otherwise be interpreted in more
 than one way.
 
+## Heading hierarchy and project grouping
+
+Use exactly this semantic hierarchy:
+
+- `#` — the report title only;
+- `##` — report sections such as Outcomes or Decisions;
+- `###` — project-root folder names inside every populated section;
+- `####` — an individual goal or tracked focus when another heading level is
+  needed.
+
+Group every populated `##` section by the basename of the recorded project
+root, even when that section contains only one project. Keep each project in
+one contiguous block. Use a localized `General` block only for genuinely
+cross-project evidence or evidence with no reliable project root. Do not use a
+conversation title, task title, or inferred topic in place of the folder name.
+Split a combined bullet when it contains distinct facts for different projects;
+do not duplicate one fact under multiple projects.
+
 ## Daily
 
 ```markdown
@@ -61,35 +79,39 @@ _<localized Date label>: YYYY-MM-DD_
 - Completed result with evidence. (`session:...`)
 
 ## Decisions
+### Project folder name
 - Decision and its recorded rationale. (`session:...`)
 
 ## Friction and failed approaches
+### Project folder name
 - Concrete blocker, failure, or repeated loop. (`session:...`)
 
 ## Open threads
+### Project folder name
 - Work that remains unresolved or whose result was not confirmed.
 
-## Suggested first step
+## Suggested next steps
+### Project folder name
 - One specific, evidence-grounded action for the next work period.
 
 ## Goal progress
-### User-selected goal
+### Project folder name or General
+#### User-selected goal
 - `Progress`, `Completed with explicit evidence`, or `Insufficient recorded evidence`, followed by a factual explanation.
 
 ## Tracked signals
-### User-selected focus
+### Project folder name or General
+#### User-selected focus
 - `Observed`, `Progress`, or `Insufficient recorded evidence`, followed by a factual explanation and session citation when available.
 
 ```
 
-Omit empty sections except `Outcomes`, `Open threads`, and `Suggested first
-step`. Include `Tracked signals` whenever active focuses are present, covering
+Omit empty sections except `Outcomes`, `Open threads`, and `Suggested next
+steps`. Include `Tracked signals` whenever active focuses are present, covering
 every active focus even when the source has insufficient evidence. If no
 completed outcome is evidenced, state that clearly. Include `Goal progress`
-whenever active goals are present. Group `Outcomes` by the basename of each recorded project root.
-Keep every project in one contiguous `###` block and preserve the user's language for
-section headings. Use a localized `No project` block only for evidence that has
-no reliable project root. Do not emit HTML comments or `retra:*` tags.
+whenever active goals are present. Preserve the user's language for section
+headings. Do not emit HTML comments or `retra:*` tags.
 
 ## Weekly
 
@@ -97,7 +119,8 @@ no reliable project root. Do not emit HTML comments or `retra:*` tags.
 # Retra — <localized inclusive date range>
 _<localized Period label>: YYYY-MM-DD — YYYY-MM-DD_
 
-## Week in one paragraph
+## Period overview
+### Project folder name
 A concise synthesis of progress and direction.
 
 ## Meaningful outcomes
@@ -105,29 +128,36 @@ A concise synthesis of progress and direction.
 - Result and why it mattered. (`session:...`)
 
 ## Decisions that shaped the work
+### Project folder name
 - Decision, rationale, and consequence when evidenced.
 
 ## Recurring friction
+### Project folder name
 - Repeated blocker or unproductive loop with evidence from multiple events.
 
 ## Carried work
+### Project folder name
 - Important work that moved forward but remains unfinished.
 
 ## Next-week priorities
+### Project folder name
 1. Specific priority grounded in open work.
 
-## Tracked signals
-### User-selected focus
-- Period-level signal or `Insufficient recorded evidence`.
+## Goal progress
+### Project folder name or General
+#### User-selected goal
+- Period-level progress or `Insufficient recorded evidence`.
 
-## Project breakdown
-### Project name
-- Progress, risks, and open questions.
+## Tracked signals
+### Project folder name or General
+#### User-selected focus
+- Period-level signal or `Insufficient recorded evidence`.
 ```
 
 Include `Goal progress` before `Tracked signals` whenever active goals are
-present. Group meaningful outcomes by recorded project-root basename just as in
-daily reports. Weekly and monthly reports may use localized open-work headings.
+present. Apply the same project grouping and heading hierarchy to weekly and
+monthly reports. Weekly and monthly reports may use localized open-work
+headings.
 
 ## Monthly
 
@@ -165,10 +195,10 @@ productivity score, inferred hours, message volume, or token counts.
 ## Detail levels and profiles
 
 - `brief`: keep only the highest-signal outcomes, decisions, unresolved work,
-  goal movement, and one next step. Avoid project breakdown unless needed.
+  goal movement, and next steps.
 - `standard`: use the structures above with compact evidence-backed bullets.
-- `detailed`: preserve more rationale, project breakdown, repeated friction,
-  and carried-work context without adding unsupported interpretation.
+- `detailed`: preserve more rationale, repeated friction, and carried-work
+  context without adding unsupported interpretation.
 
 Apply the active profile as emphasis: development favors shipped behavior and
 verification; project management favors milestones and dependencies; research

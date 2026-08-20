@@ -980,43 +980,63 @@ OPEN_SECTION_HINTS = (
 )
 
 
-def extract_open_items_from_report(content: str) -> list[str]:
-    items: list[str] = []
+def clean_report_item(value: str) -> str:
+    return re.sub(r"\s*\(`?session:[^)]+\)\s*$", "", value).strip()
+
+
+def extract_open_items_with_projects(
+    content: str,
+) -> list[tuple[str, Optional[str]]]:
+    items: list[tuple[str, Optional[str]]] = []
     in_section = False
+    current_project: Optional[str] = None
     marker_mode = "<!-- retra:open-items:start -->" in content
     for line in content.splitlines():
         if line.strip() == "<!-- retra:open-items:start -->":
             in_section = True
+            current_project = None
             continue
         if line.strip() == "<!-- retra:open-items:end -->":
             in_section = False
+            current_project = None
             continue
         if marker_mode:
             if not in_section:
                 continue
+            project_match = re.match(r"^###\s+(.+?)\s*$", line)
+            if project_match:
+                current_project = compact_report_text(project_match.group(1)) or None
+                continue
             match = re.match(r"^\s*(?:[-*]|\d+[.)])\s+(.+?)\s*$", line)
             if match:
-                item = re.sub(
-                    r"\s*\(`?session:[^)]+\)\s*$", "", match.group(1)
-                ).strip()
+                item = clean_report_item(match.group(1))
                 if item:
-                    items.append(item)
+                    items.append((item, current_project))
             continue
         if line.startswith("## "):
             heading = line[3:].strip().casefold()
             in_section = any(hint in heading for hint in OPEN_SECTION_HINTS)
+            current_project = None
+            continue
+        if in_section and line.startswith("### "):
+            current_project = compact_report_text(line[4:]) or None
             continue
         if in_section and line.startswith("# "):
             in_section = False
+            current_project = None
         if not in_section:
             continue
         match = re.match(r"^\s*(?:[-*]|\d+[.)])\s+(.+?)\s*$", line)
         if not match:
             continue
-        item = re.sub(r"\s*\(`?session:[^)]+\)\s*$", "", match.group(1)).strip()
+        item = clean_report_item(match.group(1))
         if item:
-            items.append(item)
+            items.append((item, current_project))
     return items
+
+
+def extract_open_items_from_report(content: str) -> list[str]:
+    return [title for title, _ in extract_open_items_with_projects(content)]
 
 
 def report_observed_date(path: Path, connection: sqlite3.Connection) -> date:
@@ -1033,15 +1053,18 @@ def sync_open_items_from_report(
     resolved = path.expanduser().resolve()
     if not resolved.is_file():
         raise ValueError(f"Report does not exist: {resolved}")
-    titles = extract_open_items_from_report(resolved.read_text(encoding="utf-8"))
+    report_items = extract_open_items_with_projects(
+        resolved.read_text(encoding="utf-8")
+    )
     added = 0
     updated = 0
     items: list[dict[str, Optional[str]]] = []
     observed_on = report_observed_date(resolved, connection)
-    for title in titles:
+    for title, project in report_items:
         row, created = add_open_item(
             connection,
             title,
+            project_root=project,
             source_report=str(resolved),
             observed_on=observed_on,
         )

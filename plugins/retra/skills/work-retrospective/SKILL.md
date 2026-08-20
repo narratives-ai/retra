@@ -81,9 +81,10 @@ boundary. Do not require the user to know or type the internal CLI commands.
    order for the user's language and region. Follow it with the exact inclusive
    ISO period from the source bundle, then write it to the exact path returned
    by `report-path`. Create parent directories when needed.
-9. Use ordinary Markdown headings and never emit HTML boundary comments or
-   `retra:*` tags. Group outcomes into contiguous `###` blocks named after the
-   basename of each recorded project root. After saving, run
+9. Use `#` only for the report title, `##` for report sections, `###` for
+   project-root folder names inside every populated section, and `####` only
+   for nested goal or focus names. Never emit HTML boundary comments or
+   `retra:*` tags. After saving, run
    `<bootstrap> visualize --path <report-path>` to generate and embed the local
    SVG period map, then run `<bootstrap> refresh-index`. This updates the visible
    index and imports open-work bullets into the local carry-over registry.
@@ -179,6 +180,9 @@ Retra carries unresolved work across reports. Manage the registry with:
 ```
 
 - `refresh-index` imports the newest daily report automatically.
+- A `###` heading inside the report's open-work section is the project folder
+  stored with the following bullets; keep it accurate so carried work remains
+  grouped in later reports.
 - Never auto-resolve an omitted item. Resolve only from explicit user input or
   later confirmed evidence; use archive when it is no longer relevant.
 - After a change, link to `OpenThreads.md` when available.
@@ -279,9 +283,14 @@ When the user asks to enable automatic reports:
   `Open threads` unless a subsequent task explicitly reopens it.
 - Cite supporting sessions inline as `session:<id>` when the journal provides
   an id.
-- Group outcomes by the basename of the recorded project-root folder, not by
-  conversation order. Keep each project in one contiguous `###` block and use
-  a localized `No project` block only when no reliable project root exists.
+- Group every populated report section by the basename of the recorded
+  project-root folder, not by conversation order. Keep each project in one
+  contiguous `###` block, even when it is the section's only project. Use a
+  localized `General` block only for genuinely cross-project evidence or when
+  no reliable project root exists. Split cross-project bullets when the facts
+  can be separated; never duplicate a fact merely to fill project blocks.
+- Preserve the hierarchy `# report` → `## section` → `### project` → optional
+  `#### goal or focus`. Never promote a project to the same level as a section.
 - Identify repeated failures only when the event history shows repetition.
 - Do not infer emotions, diagnoses, effort, or time spent from message volume.
 - Do not assign a productivity score.

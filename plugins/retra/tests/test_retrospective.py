@@ -168,7 +168,18 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("Never use only an ISO week number", report_format)
         self.assertNotIn("<!-- retra:", report_format)
         self.assertIn("Project folder name", report_format)
-        self.assertIn("basename of each recorded project root", report_format)
+        self.assertIn("## Heading hierarchy and project grouping", report_format)
+        self.assertIn("`#` — the report title only", report_format)
+        self.assertIn("`##` — report sections", report_format)
+        self.assertIn("`###` — project-root folder names", report_format)
+        self.assertIn("every populated `##` section", report_format)
+        self.assertIn("## Decisions\n### Project folder name", report_format)
+        self.assertIn(
+            "## Friction and failed approaches\n### Project folder name",
+            report_format,
+        )
+        self.assertIn("## Open threads\n### Project folder name", report_format)
+        self.assertIn("## Suggested next steps\n### Project folder name", report_format)
         self.assertIn("Local visualization", report_format)
         self.assertIn("productivity score", report_format)
         self.assertIn("Goal progress", report_format)
@@ -181,8 +192,9 @@ class RetrospectiveCliTests(unittest.TestCase):
         self.assertIn("0 task card(s)", skill)
         self.assertIn("likely hook/journal gap", skill)
         self.assertIn("stop without writing the report", skill)
-        self.assertIn("never emit HTML boundary comments", skill)
-        self.assertIn("basename of each recorded project root", skill)
+        self.assertIn("Never emit HTML boundary comments", skill)
+        self.assertIn("inside every populated section", skill)
+        self.assertIn("# report` → `## section` → `### project", skill)
 
     def test_setup_infers_sibling_folder_without_prompt(self) -> None:
         env = self.env.copy()
@@ -428,6 +440,7 @@ class RetrospectiveCliTests(unittest.TestCase):
             "### Research Lab\n"
             "- Проверена гипотеза ранжирования. (`session:test-2`)\n\n"
             "## Открытые вопросы\n"
+            "### Narratives & Tools\n"
             "- Проверить поведение на устройстве.\n"
             "\n",
             encoding="utf-8",
@@ -858,12 +871,13 @@ class RetrospectiveCliTests(unittest.TestCase):
         report.parent.mkdir(parents=True, exist_ok=True)
         report.write_text(
             "# Retra — 9 August 2026\n\n"
-            "<!-- retra:open-items:start -->\n"
             "## Незавершённые вопросы\n"
+            "### Narratives\n"
             "- Confirm the public installation. (`session:abc`)\n"
+            "### Release\n"
             "- Review the release notes.\n"
-            "<!-- retra:open-items:end -->\n\n"
-            "## Suggested first step\n- Run the installer.\n",
+            "\n## Suggested next steps\n"
+            "### Release\n- Run the installer.\n",
             encoding="utf-8",
         )
         first = self.run_cli("thread", "sync-report", "--path", str(report))
@@ -876,6 +890,9 @@ class RetrospectiveCliTests(unittest.TestCase):
         listing = self.run_cli("thread", "list")
         threads = json.loads(listing.stdout)["open_threads"]
         self.assertEqual(len(threads), 2)
+        projects = {thread["title"]: thread["project_root"] for thread in threads}
+        self.assertEqual(projects["Confirm the public installation."], "Narratives")
+        self.assertEqual(projects["Review the release notes."], "Release")
         self.assertIn(
             "Confirm the public installation",
             (self.reports / "OpenThreads.md").read_text(encoding="utf-8"),
@@ -884,7 +901,9 @@ class RetrospectiveCliTests(unittest.TestCase):
         report.write_text(
             "# Retra — 9 August 2026\n\n"
             "<!-- retra:open-items:start -->\n"
-            "## Questions en cours\n- Review the release notes.\n"
+            "## Questions en cours\n"
+            "### Release\n"
+            "- Review the release notes.\n"
             "<!-- retra:open-items:end -->\n",
             encoding="utf-8",
         )
